@@ -1,0 +1,38 @@
+name: Build CX Agent Extended rootfs
+
+# Builds tools/rootfs-image-builder/Dockerfile into an arm64 tar.gz and publishes it as a
+# GitHub Release asset — no local Docker needed. Run it manually from the Actions tab
+# ("Run workflow"), or push a change to the Dockerfile itself.
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "tools/rootfs-image-builder/Dockerfile"
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (for cross-building arm64)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and export rootfs
+        run: |
+          cd tools/rootfs-image-builder
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Publish as GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rootfs-${{ github.run_number }}
+          name: Extended rootfs build ${{ github.run_number }}
+          files: tools/rootfs-image-builder/cxagent-extended-rootfs-arm64.tar.gz
